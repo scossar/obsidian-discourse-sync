@@ -1,0 +1,21 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    front_matter_parser (1.0.1)
+    json (2.7.2)
+    net-http (0.4.1)
+      uri
+    uri (0.10.3)
+
+PLATFORMS
+  ruby
+  x86_64-linux
+
+DEPENDENCIES
+  front_matter_parser
+  json (~> 2.6, >= 2.6.3)
+  net-http (~> 0.4.1)
+  uri (~> 0.10.0)
+
+BUNDLED WITH
+   2.5.10
