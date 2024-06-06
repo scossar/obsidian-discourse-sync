@@ -8,7 +8,7 @@ require 'yaml'
 Dotenv.load
 
 class PublishToDiscourse
-  def initialize(filename)
+  def initialize
     @filename = filename
     @api_key = ENV.fetch('API_KEY')
     load_config
@@ -21,8 +21,8 @@ class PublishToDiscourse
     @vault_path = config['vault_path']
   end
 
-  def publish
-    content = File.read("#{@vault_path}#{@filename}")
+  def publish(filename)
+    content = File.read("#{@vault_path}#{filename}")
     _parsed, markdown, title, post_id = parse(content)
 
     return unless title
@@ -54,5 +54,5 @@ class PublishToDiscourse
   end
 end
 
-obj = PublishToDiscourse.new(ARGV[0])
-obj.publish
+# obj = PublishToDiscourse.new(ARGV[0])
+# obj.publish
