@@ -24,7 +24,6 @@ class PublishToDiscourse
   def publish
     content = File.read("#{@vault_path}#{@filename}")
     _parsed, markdown, title, post_id = parse(content)
-    puts markdown
 
     return unless title
 
@@ -47,6 +46,7 @@ class PublishToDiscourse
     headers = { 'Api-Key' => @api_key, 'Api-Username' => @api_username,
                 'Content-Type' => 'application/json' }
     url = post_id ? "#{@base_url}/#{post_id}.json" : "#{@base_url}/posts.json"
+    puts "url: #{url}"
     body = JSON.generate({ title:, raw: markdown, category: 8,
                            skip_validations: true })
     method = post_id ? :put : :post
