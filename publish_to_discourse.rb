@@ -5,6 +5,8 @@ require 'front_matter_parser'
 require 'httparty'
 require 'yaml'
 
+require_relative 'local_to_discourse_image_converter'
+
 Dotenv.load
 
 class PublishToDiscourse
@@ -26,6 +28,9 @@ class PublishToDiscourse
 
     return unless title
 
+    image_converter = LocalToDiscourseImageConverter.new(markdown)
+    markdown = image_converter.convert
+
     response = publish_note(title:, post_id:, markdown:)
     return unless response.message == 'OK'
 
@@ -36,7 +41,6 @@ class PublishToDiscourse
     parsed = FrontMatterParser::Parser.new(:md).call(content)
     front_matter = parsed.front_matter
     markdown = parsed.content
-    puts markdown
     title = front_matter['title']
     post_id = front_matter['post_id']
     [parsed, markdown, title, post_id]
