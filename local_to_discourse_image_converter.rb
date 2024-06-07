@@ -21,12 +21,13 @@ class LocalToDiscourseImageConverter
     @markdown.gsub(@image_tag_regex) do |tag_match|
       image_name = tag_match.match(@image_tag_regex)[1]
       image_path = "#{@vault_path}#{image_name}"
-      puts "image_name: #{image_path}"
       response = upload_image_to_discourse(image_path)
-      p response
-      sleep 1
+
+      short_url = response['short_url']
+      original_filename = response['original_filename']
+      new_tag = "![#{original_filename}](#{short_url})"
+      new_tag
     end
-    @markdown
   end
 
   private
