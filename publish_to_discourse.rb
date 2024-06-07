@@ -9,7 +9,6 @@ Dotenv.load
 
 class PublishToDiscourse
   def initialize
-    @filename = filename
     @api_key = ENV.fetch('API_KEY')
     load_config
   end
@@ -21,8 +20,8 @@ class PublishToDiscourse
     @vault_path = config['vault_path']
   end
 
-  def publish(filename)
-    content = File.read("#{@vault_path}#{filename}")
+  def publish(file)
+    content = File.read(file)
     _parsed, markdown, title, post_id = parse(content)
 
     return unless title
