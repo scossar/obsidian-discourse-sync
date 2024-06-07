@@ -28,10 +28,11 @@ class PublishToDiscourse
 
     return unless title
 
-    image_converter = LocalToDiscourseImageConverter.new(markdown)
-    markdown = image_converter.convert
+    markdown_copy = markdown.dup
+    image_converter = LocalToDiscourseImageConverter.new(markdown_copy)
+    updated_markdown = image_converter.convert
 
-    response = publish_note(title:, post_id:, markdown:)
+    response = publish_note(title:, post_id:, markdown: updated_markdown)
     return unless response.message == 'OK'
 
     topic_json = JSON.parse(response.body)
@@ -62,10 +63,11 @@ class PublishToDiscourse
     front_matter['post_id'] = topic_json['id']
     front_matter['discourse_url'] =
       "#{@base_url}/t/#{topic_json['topic_slug']}/#{topic_json['topic_id']}"
+    puts front_matter
     updated_content = "#{front_matter.to_yaml}---\n#{markdown}"
     File.write(file, updated_content)
   end
 end
 
-obj = PublishToDiscourse.new
-obj.publish ARGV[0]
+# obj = PublishToDiscourse.new
+# obj.publish ARGV[0]
