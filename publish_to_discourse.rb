@@ -61,7 +61,7 @@ class PublishToDiscourse
   def update_front_matter(topic_json:, front_matter:, markdown:, file:)
     front_matter['post_id'] = topic_json['id']
     front_matter['discourse_url'] =
-      "#{@base_url}/t/#{topic_json['topic_slug']}/#{topic_json['topic_id']}}"
+      "#{@base_url}/t/#{topic_json['topic_slug']}/#{topic_json['topic_id']}"
     updated_content = "#{front_matter.to_yaml}---\n#{markdown}"
     File.write(file, updated_content)
   end
