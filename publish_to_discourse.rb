@@ -24,7 +24,7 @@ class PublishToDiscourse
 
   def publish(file)
     content = File.read(file)
-    _parsed, markdown, title, post_id = parse(content)
+    _parsed, markdown, title, post_id, front_matter = parse(content)
 
     return unless title
 
@@ -35,10 +35,7 @@ class PublishToDiscourse
     return unless response.message == 'OK'
 
     topic_json = JSON.parse(response.body)
-    topic_id = topic_json['topic_id']
-    topic_slug = topic_json['topic_slug']
-    discourse_url = "#{@base_url}/t/#{topic_slug}/#{topic_id}"
-    puts discourse_url
+    update_front_matter(topic_json:, front_matter:, markdown:, file:)
   end
 
   def parse(content)
@@ -47,7 +44,7 @@ class PublishToDiscourse
     markdown = parsed.content
     title = front_matter['title']
     post_id = front_matter['post_id']
-    [parsed, markdown, title, post_id]
+    [parsed, markdown, title, post_id, front_matter]
   end
 
   def publish_note(title:, post_id:, markdown:)
@@ -59,6 +56,14 @@ class PublishToDiscourse
                            skip_validations: true })
     method = post_id ? :put : :post
     HTTParty.send(method, url, headers:, body:)
+  end
+
+  def update_front_matter(topic_json:, front_matter:, markdown:, file:)
+    front_matter['post_id'] = topic_json['id']
+    front_matter['discourse_url'] =
+      "#{@base_url}/t/#{topic_json['topic_slug']}/#{topic_json['topic_id']}}"
+    updated_content = "#{front_matter.to_yaml}---\n#{markdown}"
+    File.write(file, updated_content)
   end
 end
 
