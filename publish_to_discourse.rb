@@ -36,6 +36,7 @@ class PublishToDiscourse
     parsed = FrontMatterParser::Parser.new(:md).call(content)
     front_matter = parsed.front_matter
     markdown = parsed.content
+    puts markdown
     title = front_matter['title']
     post_id = front_matter['post_id']
     [parsed, markdown, title, post_id]
@@ -53,5 +54,5 @@ class PublishToDiscourse
   end
 end
 
-# obj = PublishToDiscourse.new(ARGV[0])
-# obj.publish
+obj = PublishToDiscourse.new
+obj.publish ARGV[0]
