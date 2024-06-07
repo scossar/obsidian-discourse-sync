@@ -34,7 +34,11 @@ class PublishToDiscourse
     response = publish_note(title:, post_id:, markdown:)
     return unless response.message == 'OK'
 
-    JSON.parse(response.body)
+    topic_json = JSON.parse(response.body)
+    topic_id = topic_json['topic_id']
+    topic_slug = topic_json['topic_slug']
+    discourse_url = "#{@base_url}/t/#{topic_slug}/#{topic_id}"
+    puts discourse_url
   end
 
   def parse(content)
