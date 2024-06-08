@@ -2,8 +2,11 @@
 
 require 'optparse'
 
+require_relative 'lib/database'
 require_relative 'publish_to_discourse'
 require_relative 'sync_vault'
+
+Database.initialize_database
 
 options = {}
 command = nil

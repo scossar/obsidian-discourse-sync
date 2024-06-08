@@ -4,11 +4,9 @@ require 'fileutils'
 require 'optparse'
 require 'yaml'
 require_relative 'publish_to_discourse'
-require_relative 'lib/database'
 
 class SyncVault
   def initialize(vault_path = nil)
-    Database.initialize_database
     config = YAML.load_file('config.yml')
     @publisher = PublishToDiscourse.new
     @vault_path = vault_path || config['vault_path']
