@@ -5,6 +5,7 @@ require 'front_matter_parser'
 require 'httparty'
 require 'yaml'
 
+require_relative 'lib/database'
 require_relative 'local_to_discourse_image_converter'
 
 Dotenv.load
@@ -24,7 +25,10 @@ class PublishToDiscourse
 
   def publish(file)
     content = File.read(file)
-    _parsed, markdown, title, post_id, front_matter = parse(content)
+    title = title_from_file(file)
+    post_id = Database.get_discourse_post_id(title)
+    puts "post_id: #{post_id}, title: #{title}"
+    markdown, _title, _post_id = parse(content)
 
     return unless title
 
@@ -37,7 +41,7 @@ class PublishToDiscourse
     return unless response.message == 'OK'
 
     topic_json = JSON.parse(response.body)
-    # update_front_matter(topic_json:, front_matter:, markdown:, file:)
+    update_note_data(title, topic_json)
   end
 
   def parse(content)
@@ -46,13 +50,14 @@ class PublishToDiscourse
     markdown = parsed.content
     title = front_matter['title']
     post_id = front_matter['post_id']
-    [parsed, markdown, title, post_id, front_matter]
+    [markdown, title, post_id]
   end
 
   def publish_note(title:, post_id:, markdown:)
+    puts "post_id: #{post_id}"
     headers = { 'Api-Key' => @api_key, 'Api-Username' => @api_username,
                 'Content-Type' => 'application/json' }
-    url = post_id ? "#{@base_url}/#{post_id}.json" : "#{@base_url}/posts.json"
+    url = post_id ? "#{@base_url}/posts/#{post_id}.json" : "#{@base_url}/posts.json"
     puts "url: #{url}"
     body = JSON.generate({ title:, raw: markdown, category: 8,
                            skip_validations: true })
@@ -60,15 +65,17 @@ class PublishToDiscourse
     HTTParty.send(method, url, headers:, body:)
   end
 
-  def update_front_matter(topic_json:, front_matter:, markdown:, file:)
-    front_matter['post_id'] = topic_json['id']
-    front_matter['discourse_url'] =
+  def update_note_data(title, topic_json)
+    discourse_url =
       "#{@base_url}/t/#{topic_json['topic_slug']}/#{topic_json['topic_id']}"
-    puts front_matter
-    updated_content = "#{front_matter.to_yaml}---\n#{markdown}"
-    File.write(file, updated_content)
+    discourse_post_id = topic_json['id']
+    unadjusted_links = 0
+    Database.create_or_update_note(title:, discourse_url:, discourse_post_id:,
+                                   unadjusted_links:)
+  end
+
+  def title_from_file(file)
+    file_name = file.split('/')[-1]
+    file_name.split('.')[0]
   end
 end
-
-# obj = PublishToDiscourse.new
-# obj.publish ARGV[0]

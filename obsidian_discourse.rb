@@ -22,6 +22,10 @@ OptionParser.new do |opts|
     options[:file_path] = f
   end
 
+  opts.on('-t', '--title TITLE', 'Note title') do |t|
+    options[:title] = t
+  end
+
   opts.on('-c', '--command COMMAND',
           'Command to execute (sync_vault, publish_to_discourse)') do |c|
     command = c
@@ -48,6 +52,10 @@ when 'publish_to_discourse'
   file = options[:file_path]
   publisher = PublishToDiscourse.new
   publisher.publish(file)
+when 'note_info'
+  title = options[:title]
+  info = Database.query_notes_by_title(title)
+  puts info || 'Note not found'
 else
   puts 'Invalid command. Use -h for help.'
 end
