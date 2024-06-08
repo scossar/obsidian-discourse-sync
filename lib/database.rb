@@ -67,21 +67,11 @@ module Database
     note_exists = db.get_first_value('SELECT COUNT(*) FROM notes WHERE title = ?',
                                      title).to_i.positive?
     if note_exists
-      sql = <<-SQL
-        UPDATE notes
-        SET discourse_url = ?,
-          discourse_post_id = ?,
-          unadjusted_links = ?
-        WHERE title = ?
-      SQL
-      db.execute(sql, [discourse_url, discourse_post_id, unadjusted_links, title])
+      db.execute(update_note_sql,
+                 [discourse_url, discourse_post_id, unadjusted_links, title])
     else
-      puts "title in create or update note: #{title}"
-      sql = <<-SQL
-        INSERT INTO notes (title, discourse_url, discourse_post_id, unadjusted_links)
-        VALUES (?, ?, ?, ?);
-      SQL
-      db.execute(sql, [title, discourse_url, discourse_post_id, unadjusted_links])
+      db.execute(create_note_sql,
+                 [title, discourse_url, discourse_post_id, unadjusted_links])
     end
     db.close
   end
@@ -93,5 +83,22 @@ module Database
     )
     db.close
     result
+  end
+
+  def self.create_note_sql
+    <<-SQL
+    INSERT INTO notes (title, discourse_url, discourse_post_id, unadjusted_links)
+    VALUES (?, ?, ?, ?)
+    SQL
+  end
+
+  def self.update_note_sql
+    <<~SQL
+      UPDATE notes
+          set discourse_url = ?,
+          discourse_post_id = ?,
+          unadjusted_links = ?
+          WHERE title = ?
+    SQL
   end
 end
