@@ -25,16 +25,3 @@ class SyncVault
     end
   end
 end
-
-options = {}
-OptionParser.new do |opts|
-  opts.banner = 'Usage: sync_vault.rb [options]'
-
-  opts.on('v', '--vault_path PATH', 'Path to vault') do |v|
-    options[:vault_path] = v
-  end
-end.parse!
-
-vault_path = options[:vault_path]
-sync_vault = SyncVault.new(vault_path)
-sync_vault.sync
