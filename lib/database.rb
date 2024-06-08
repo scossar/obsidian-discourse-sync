@@ -8,7 +8,7 @@ module Database
     config = YAML.load_file('config.yml')
     db = SQLite3::Database.new config['db_file']
     create_tables(db)
-    create_triggers
+    create_triggers(db)
   end
 
   def self.create_tables(db)
@@ -22,7 +22,6 @@ module Database
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
-    SQL
     SQL
   end
 
