@@ -3,9 +3,11 @@
 require 'fileutils'
 require 'yaml'
 require_relative 'publish_to_discourse'
+require_relative 'lib/database'
 
 class SyncVault
   def initialize
+    Database.initialize_database
     @publisher = PublishToDiscourse.new
     load_config
   end

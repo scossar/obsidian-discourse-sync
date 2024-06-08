@@ -1,3 +1,4 @@
 api_username: "scossar"
 base_url: "http://localhost:4200"
+db_file: "notes.db"
 vault_path: "/home/scossar/Documents/Obsidian Vault/"

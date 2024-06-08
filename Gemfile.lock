@@ -24,12 +24,16 @@ GEM
     mime-types (3.5.2)
       mime-types-data (~> 3.2015)
     mime-types-data (3.2024.0604)
+    mini_portile2 (2.8.7)
     multi_xml (0.7.1)
       bigdecimal (~> 3.1)
     multipart-post (2.4.1)
     net-http (0.4.1)
       uri
     rack (3.0.11)
+    sqlite3 (2.0.2)
+      mini_portile2 (~> 2.8.0)
+    sqlite3 (2.0.2-x86_64-linux-gnu)
     uri (0.13.0)
     yard (0.9.36)
 
@@ -43,6 +47,7 @@ DEPENDENCIES
   front_matter_parser
   httparty (~> 0.13.7)
   mime-types
+  sqlite3 (~> 2.0, >= 2.0.2)
   yard
 
 BUNDLED WITH
