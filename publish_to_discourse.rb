@@ -33,10 +33,11 @@ class PublishToDiscourse
     updated_markdown = image_converter.convert
 
     response = publish_note(title:, post_id:, markdown: updated_markdown)
+    puts "response.message: #{response.message}"
     return unless response.message == 'OK'
 
     topic_json = JSON.parse(response.body)
-    update_front_matter(topic_json:, front_matter:, markdown:, file:)
+    # update_front_matter(topic_json:, front_matter:, markdown:, file:)
   end
 
   def parse(content)
