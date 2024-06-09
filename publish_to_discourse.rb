@@ -18,8 +18,14 @@ class PublishToDiscourse
   end
 
   def publish(file_path)
+    begin
+      title = Utils.title_from_file_path(file_path)
+    rescue ArgumentError => e
+      CliErrorHandler.handle_error(e.message, 'invalid_file')
+      return
+    end
     content = File.read(file_path)
-    title = Utils.title_from_file_path(file_path)
+    # title = Utils.title_from_file_path(file_path)
     post_id = Database.get_discourse_post_id(title)
     markdown, _front_matter = parse(content)
     image_converter = LocalToDiscourseImageConverter.new(markdown)
