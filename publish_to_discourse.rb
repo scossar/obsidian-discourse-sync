@@ -25,7 +25,6 @@ class PublishToDiscourse
       return
     end
     content = File.read(file_path)
-    # title = Utils.title_from_file_path(file_path)
     post_id = Database.get_discourse_post_id(title)
     markdown, _front_matter = parse(content)
     image_converter = LocalToDiscourseImageConverter.new(markdown)
@@ -34,7 +33,7 @@ class PublishToDiscourse
       update_topic_from_note(markdown:,
                              post_id:)
     else
-      create_topic_for_note(
+      create_topic_from_note(
         title:, markdown:
       )
     end
@@ -47,9 +46,10 @@ class PublishToDiscourse
     [markdown, front_matter]
   end
 
-  def create_topic_for_note(title:, markdown:)
-    response = @client.create_topic(category: 8, skip_validations: true, title:,
-                                    raw: markdown)
+  def create_topic_from_note(title:, markdown:)
+    external_id = "ob:#{title}"
+    response = @client.post('posts', title:, raw: markdown, category: 8,
+                                     external_id:, skip_validations: true)
     add_note_to_db(title, response)
   rescue DiscourseApi::UnauthenticatedError, DiscourseApi::Error => e
     error_message, error_type = ApiErrorParser.message_and_type(e)
