@@ -49,9 +49,9 @@ when 'sync_vault'
   sync_vault = SyncVault.new(vault_path)
   sync_vault.sync
 when 'publish_to_discourse'
-  file = options[:file_path]
+  file_path = options[:file_path]
   publisher = PublishToDiscourse.new
-  publisher.publish(file)
+  publisher.publish(file_path)
 when 'note_info'
   title = options[:title]
   info = Database.query_notes_by_title(title)

@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'fileutils'
-require 'optparse'
 require 'yaml'
 require_relative 'publish_to_discourse'
 
@@ -13,12 +12,12 @@ class SyncVault
   end
 
   def sync
-    Dir.glob(File.join(@vault_path, '**', '*.md')).each do |file|
-      puts "Syncing file: #{file}"
-      puts "Directory: #{File.dirname(file)}"
-      puts "Last Modified: #{File.mtime(file)}"
+    Dir.glob(File.join(@vault_path, '**', '*.md')).each do |file_path|
+      puts "Syncing file: #{file_path}"
+      puts "Directory: #{File.dirname(file_path)}"
+      puts "Last Modified: #{File.mtime(file_path)}"
       puts '---------'
-      @publisher.publish file
+      @publisher.publish file_path
       sleep 1
     end
   end

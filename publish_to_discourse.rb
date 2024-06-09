@@ -1,34 +1,25 @@
 # frozen_string_literal: true
 
 require 'discourse_api'
-require 'dotenv'
 require 'front_matter_parser'
 require 'yaml'
 
 require_relative 'lib/api_error_parser'
 require_relative 'lib/cli_error_handler'
 require_relative 'lib/database'
+require_relative 'lib/utils'
 require_relative 'local_to_discourse_image_converter'
-
-Dotenv.load
 
 class PublishToDiscourse
   def initialize
-    @api_key = ENV.fetch('API_KEY')
     @client = DiscourseClient.client
-    load_config
-  end
-
-  def load_config
     config = YAML.load_file('config.yml')
-    @api_username = config['api_username']
     @base_url = config['base_url']
-    @vault_path = config['vault_path']
   end
 
-  def publish(file)
-    content = File.read(file)
-    title = title_from_file(file)
+  def publish(file_path)
+    content = File.read(file_path)
+    title = Utils.title_from_file_path(file_path)
     post_id = Database.get_discourse_post_id(title)
     markdown, _front_matter = parse(content)
     image_converter = LocalToDiscourseImageConverter.new(markdown)
@@ -79,10 +70,5 @@ class PublishToDiscourse
     discourse_url =
       "#{@base_url}/t/#{topic_slug}/#{topic_id}"
     Database.create_note(title:, discourse_url:, discourse_post_id:)
-  end
-
-  def title_from_file(file)
-    file_name = file.split('/')[-1]
-    file_name.split('.')[0]
   end
 end
