@@ -33,12 +33,9 @@ class PublishToDiscourse
     link_handler = InternalLinkHandler.new(markdown)
     markdown = link_handler.handle
     if post_id
-      update_topic_from_note(markdown:,
-                             post_id:)
+      update_topic_from_note(markdown:, post_id:)
     else
-      create_topic_from_note(
-        title:, markdown:
-      )
+      create_topic_from_note(title:, markdown:)
     end
   end
 
@@ -50,8 +47,7 @@ class PublishToDiscourse
   end
 
   def create_topic_from_note(title:, markdown:)
-    response = @client.post('posts', title:, raw: markdown, category: 8,
-                                     skip_validations: true)
+    response = @client.post('posts', title:, raw: markdown, category: 8, skip_validations: true)
     add_note_to_db(title, response)
   rescue DiscourseApi::UnauthenticatedError, DiscourseApi::Error => e
     error_message, error_type = ApiErrorParser.message_and_type(e)
@@ -75,8 +71,7 @@ class PublishToDiscourse
     discourse_post_id = response['id']
     topic_id = response['topic_id']
     topic_slug = response['topic_slug']
-    discourse_url =
-      "#{@base_url}/t/#{topic_slug}/#{topic_id}"
+    discourse_url = "#{@base_url}/t/#{topic_slug}/#{topic_id}"
     Database.create_note(title:, discourse_url:, discourse_post_id:)
   end
 end

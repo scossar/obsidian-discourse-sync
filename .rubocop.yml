@@ -12,7 +12,7 @@ Style/Documentation:
   Enabled: false
 
 Layout/LineLength:
-  Max: 90
+  Max: 100
 
 Metrics/BlockLength:
   Exclude:
