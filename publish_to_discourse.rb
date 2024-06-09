@@ -6,6 +6,7 @@ require 'front_matter_parser'
 require 'yaml'
 
 require_relative 'lib/api_error_parser'
+require_relative 'lib/cli_error_handler'
 require_relative 'lib/database'
 require_relative 'local_to_discourse_image_converter'
 
@@ -55,7 +56,7 @@ class PublishToDiscourse
     add_note_to_db(title, response)
   rescue DiscourseApi::UnauthenticatedError, DiscourseApi::Error => e
     error_message, error_type = ApiErrorParser.message_and_type(e)
-    handle_error(error_message, error_type)
+    CliErrorHandler.handle_error(error_message, error_type)
   end
 
   def update_topic_from_note(markdown:, post_id:)
@@ -68,7 +69,7 @@ class PublishToDiscourse
     end
   rescue DiscourseApi::NotFoundError, DiscourseApi::Error => e
     error_message, error_type = ApiErrorParser.message_and_type(e)
-    handle_error(error_message, error_type)
+    CliErrorHandler.handle_error(error_message, error_type)
   end
 
   def add_note_to_db(title, response)
@@ -83,20 +84,5 @@ class PublishToDiscourse
   def title_from_file(file)
     file_name = file.split('/')[-1]
     file_name.split('.')[0]
-  end
-
-  def handle_error(message, error_type)
-    puts message
-    if error_type == 'invalid_access'
-      puts 'Make sure you have added your API key to the .env file'
-    end
-    puts 'Would you like to continue with the syncing process? (yes/no)'
-    answer = gets.chomp.downcase
-    if answer == 'yes'
-      puts 'Continuing with the syncing process...'
-    else
-      puts 'Quitting the process...'
-      exit
-    end
   end
 end
