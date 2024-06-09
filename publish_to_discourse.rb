@@ -71,27 +71,24 @@ class PublishToDiscourse
   end
 
   def update_topic_from_note(markdown:, post_id:)
-    bad_post_id = post_id + 1234
-    begin
-      response = @client.edit_post(bad_post_id, markdown)
-      case response.status
-      when 200, 201, 204
-        response.body
-      else
-        puts "Error: Received status code #{response.status}"
-        raise "Failed to update post: #{response.body}"
-      end
-    rescue DiscourseApi::NotFoundError, DiscourseApi::Error => e
-      error_details = error_details(e)
-      if error_details
-        error_message = error_message(error_details) || 'Api Error'
-        error_type = error_type(error_details)
-      else
-        error_message = 'Api Error'
-        error_type = 'Unknown Error Type'
-      end
-      handle_error(error_message, error_type)
+    response = @client.edit_post(post_id, markdown)
+    case response.status
+    when 200, 201, 204
+      response.body
+    else
+      puts "Error: Received status code #{response.status}"
+      raise "Failed to update post: #{response.body}"
     end
+  rescue DiscourseApi::NotFoundError, DiscourseApi::Error => e
+    error_details = error_details(e)
+    if error_details
+      error_message = error_message(error_details) || 'Api Error'
+      error_type = error_type(error_details)
+    else
+      error_message = 'Api Error'
+      error_type = 'Unknown Error Type'
+    end
+    handle_error(error_message, error_type)
   end
 
   def update_note_data(title, response)
