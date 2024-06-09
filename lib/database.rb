@@ -24,7 +24,6 @@ module Database
         title TEXT UNIQUE,
         discourse_url TEXT,
         discourse_post_id INTEGER,
-        unadjusted_links BOOLEAN DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -61,18 +60,9 @@ module Database
     db.close
   end
 
-  def self.create_or_update_note(title:, discourse_url:, discourse_post_id:,
-                                 unadjusted_links:)
+  def self.create_note(title:, discourse_url:, discourse_post_id:)
     db = SQLite3::Database.new db_file
-    note_exists = db.get_first_value('SELECT COUNT(*) FROM notes WHERE title = ?',
-                                     title).to_i.positive?
-    if note_exists
-      db.execute(update_note_sql,
-                 [discourse_url, discourse_post_id, unadjusted_links, title])
-    else
-      db.execute(create_note_sql,
-                 [title, discourse_url, discourse_post_id, unadjusted_links])
-    end
+    db.execute(create_note_sql, [title, discourse_url, discourse_post_id])
     db.close
   end
 
@@ -87,18 +77,8 @@ module Database
 
   def self.create_note_sql
     <<-SQL
-    INSERT INTO notes (title, discourse_url, discourse_post_id, unadjusted_links)
-    VALUES (?, ?, ?, ?)
-    SQL
-  end
-
-  def self.update_note_sql
-    <<~SQL
-      UPDATE notes
-          set discourse_url = ?,
-          discourse_post_id = ?,
-          unadjusted_links = ?
-          WHERE title = ?
+    INSERT INTO notes (title, discourse_url, discourse_post_id)
+    VALUES (?, ?, ?)
     SQL
   end
 end

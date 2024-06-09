@@ -5,6 +5,7 @@ require 'dotenv'
 require 'front_matter_parser'
 require 'yaml'
 
+require_relative 'lib/api_error_parser'
 require_relative 'lib/database'
 require_relative 'local_to_discourse_image_converter'
 
@@ -29,44 +30,31 @@ class PublishToDiscourse
     title = title_from_file(file)
     post_id = Database.get_discourse_post_id(title)
     markdown, _front_matter = parse(content)
-
     image_converter = LocalToDiscourseImageConverter.new(markdown)
     markdown = image_converter.convert
-
-    response = if post_id
-                 update_topic_from_note(markdown:,
-                                        post_id:)
-               else
-                 create_topic_for_note(
-                   title:, markdown:
-                 )
-               end
-    update_note_data(title, response)
+    if post_id
+      update_topic_from_note(markdown:,
+                             post_id:)
+    else
+      create_topic_for_note(
+        title:, markdown:
+      )
+    end
   end
 
   def parse(content)
     parsed = FrontMatterParser::Parser.new(:md).call(content)
     front_matter = parsed.front_matter
     markdown = parsed.content
-    # title = front_matter['title']
-    # post_id = front_matter['post_id']
     [markdown, front_matter]
   end
 
   def create_topic_for_note(title:, markdown:)
-    @client.create_topic(category: 8, skip_validations: true, title:,
-                         raw: markdown)
+    response = @client.create_topic(category: 8, skip_validations: true, title:,
+                                    raw: markdown)
+    add_note_to_db(title, response)
   rescue DiscourseApi::UnauthenticatedError, DiscourseApi::Error => e
-    error_details = error_details(e)
-    if error_details
-      error_message = error_message(error_details) || 'Api Error'
-      error_type = error_type(error_details)
-
-    else
-      error_message = 'Api Error'
-      error_type = 'Unknown Error Type'
-    end
-
+    error_message, error_type = ApiErrorParser.message_and_type(e)
     handle_error(error_message, error_type)
   end
 
@@ -76,33 +64,20 @@ class PublishToDiscourse
     when 200, 201, 204
       response.body
     else
-      puts "Error: Received status code #{response.status}"
       raise "Failed to update post: #{response.body}"
     end
   rescue DiscourseApi::NotFoundError, DiscourseApi::Error => e
-    error_details = error_details(e)
-    if error_details
-      error_message = error_message(error_details) || 'Api Error'
-      error_type = error_type(error_details)
-    else
-      error_message = 'Api Error'
-      error_type = 'Unknown Error Type'
-    end
+    error_message, error_type = ApiErrorParser.message_and_type(e)
     handle_error(error_message, error_type)
   end
 
-  def update_note_data(title, response)
+  def add_note_to_db(title, response)
     discourse_post_id = response['id']
     topic_id = response['topic_id']
     topic_slug = response['topic_slug']
-
     discourse_url =
       "#{@base_url}/t/#{topic_slug}/#{topic_id}"
-    unadjusted_links = 0
-    puts "url: #{discourse_url}, discourse_post_id: #{discourse_post_id}"
-    puts "discourse_post_id: #{discourse_post_id}"
-    Database.create_or_update_note(title:, discourse_url:, discourse_post_id:,
-                                   unadjusted_links:)
+    Database.create_note(title:, discourse_url:, discourse_post_id:)
   end
 
   def title_from_file(file)
@@ -123,26 +98,5 @@ class PublishToDiscourse
       puts 'Quitting the process...'
       exit
     end
-  end
-
-  def error_details(api_error)
-    if api_error.respond_to?(:response) && api_error.response.respond_to?(:response_body)
-      error_details = api_error.response.response_body
-    end
-    error_details || nil
-  end
-
-  def error_message(error_details)
-    if error_details.is_a?(Hash) && error_details['errors'].is_a?(Array)
-      error_message = error_details['errors'].join(', ')
-    end
-    error_message || nil
-  end
-
-  def error_type(error_details)
-    if error_details.is_a?(Hash) && error_details['error_type']
-      error_type = error_details['error_type']
-    end
-    error_type || nil
   end
 end
