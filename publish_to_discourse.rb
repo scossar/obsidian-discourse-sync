@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
+require 'discourse_api'
 require 'dotenv'
 require 'front_matter_parser'
-require 'httparty'
 require 'yaml'
 
 require_relative 'lib/database'
@@ -13,6 +13,7 @@ Dotenv.load
 class PublishToDiscourse
   def initialize
     @api_key = ENV.fetch('API_KEY')
+    @client = DiscourseClient.client
     load_config
   end
 
@@ -27,49 +28,82 @@ class PublishToDiscourse
     content = File.read(file)
     title = title_from_file(file)
     post_id = Database.get_discourse_post_id(title)
-    puts "post_id: #{post_id}, title: #{title}"
-    markdown, _title, _post_id = parse(content)
+    markdown, _front_matter = parse(content)
 
-    return unless title
+    image_converter = LocalToDiscourseImageConverter.new(markdown)
+    markdown = image_converter.convert
 
-    markdown_copy = markdown.dup
-    image_converter = LocalToDiscourseImageConverter.new(markdown_copy)
-    updated_markdown = image_converter.convert
-
-    response = publish_note(title:, post_id:, markdown: updated_markdown)
-    puts "response.message: #{response.message}"
-    return unless response.message == 'OK'
-
-    topic_json = JSON.parse(response.body)
-    update_note_data(title, topic_json)
+    response = if post_id
+                 update_topic_from_note(markdown:,
+                                        post_id:)
+               else
+                 create_topic_for_note(
+                   title:, markdown:
+                 )
+               end
+    update_note_data(title, response)
   end
 
   def parse(content)
     parsed = FrontMatterParser::Parser.new(:md).call(content)
     front_matter = parsed.front_matter
     markdown = parsed.content
-    title = front_matter['title']
-    post_id = front_matter['post_id']
-    [markdown, title, post_id]
+    # title = front_matter['title']
+    # post_id = front_matter['post_id']
+    [markdown, front_matter]
   end
 
-  def publish_note(title:, post_id:, markdown:)
-    puts "post_id: #{post_id}"
-    headers = { 'Api-Key' => @api_key, 'Api-Username' => @api_username,
-                'Content-Type' => 'application/json' }
-    url = post_id ? "#{@base_url}/posts/#{post_id}.json" : "#{@base_url}/posts.json"
-    puts "url: #{url}"
-    body = JSON.generate({ title:, raw: markdown, category: 8,
-                           skip_validations: true })
-    method = post_id ? :put : :post
-    HTTParty.send(method, url, headers:, body:)
+  def create_topic_for_note(title:, markdown:)
+    @client.create_topic(category: 8, skip_validations: true, title:,
+                         raw: markdown)
+  rescue DiscourseApi::UnauthenticatedError, DiscourseApi::Error => e
+    error_details = error_details(e)
+    if error_details
+      error_message = error_message(error_details) || 'Api Error'
+      error_type = error_type(error_details)
+
+    else
+      error_message = 'Api Error'
+      error_type = 'Unknown Error Type'
+    end
+
+    handle_error(error_message, error_type)
   end
 
-  def update_note_data(title, topic_json)
+  def update_topic_from_note(markdown:, post_id:)
+    bad_post_id = post_id + 1234
+    begin
+      response = @client.edit_post(bad_post_id, markdown)
+      case response.status
+      when 200, 201, 204
+        response.body
+      else
+        puts "Error: Received status code #{response.status}"
+        raise "Failed to update post: #{response.body}"
+      end
+    rescue DiscourseApi::NotFoundError, DiscourseApi::Error => e
+      error_details = error_details(e)
+      if error_details
+        error_message = error_message(error_details) || 'Api Error'
+        error_type = error_type(error_details)
+      else
+        error_message = 'Api Error'
+        error_type = 'Unknown Error Type'
+      end
+      handle_error(error_message, error_type)
+    end
+  end
+
+  def update_note_data(title, response)
+    discourse_post_id = response['id']
+    topic_id = response['topic_id']
+    topic_slug = response['topic_slug']
+
     discourse_url =
-      "#{@base_url}/t/#{topic_json['topic_slug']}/#{topic_json['topic_id']}"
-    discourse_post_id = topic_json['id']
+      "#{@base_url}/t/#{topic_slug}/#{topic_id}"
     unadjusted_links = 0
+    puts "url: #{discourse_url}, discourse_post_id: #{discourse_post_id}"
+    puts "discourse_post_id: #{discourse_post_id}"
     Database.create_or_update_note(title:, discourse_url:, discourse_post_id:,
                                    unadjusted_links:)
   end
@@ -77,5 +111,41 @@ class PublishToDiscourse
   def title_from_file(file)
     file_name = file.split('/')[-1]
     file_name.split('.')[0]
+  end
+
+  def handle_error(message, error_type)
+    puts message
+    if error_type == 'invalid_access'
+      puts 'Make sure you have added your API key to the .env file'
+    end
+    puts 'Would you like to continue with the syncing process? (yes/no)'
+    answer = gets.chomp.downcase
+    if answer == 'yes'
+      puts 'Continuing with the syncing process...'
+    else
+      puts 'Quitting the process...'
+      exit
+    end
+  end
+
+  def error_details(api_error)
+    if api_error.respond_to?(:response) && api_error.response.respond_to?(:response_body)
+      error_details = api_error.response.response_body
+    end
+    error_details || nil
+  end
+
+  def error_message(error_details)
+    if error_details.is_a?(Hash) && error_details['errors'].is_a?(Array)
+      error_message = error_details['errors'].join(', ')
+    end
+    error_message || nil
+  end
+
+  def error_type(error_details)
+    if error_details.is_a?(Hash) && error_details['error_type']
+      error_type = error_details['error_type']
+    end
+    error_type || nil
   end
 end
