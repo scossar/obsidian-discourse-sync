@@ -75,6 +75,14 @@ module Database
     result
   end
 
+  def self.get_discourse_url_from_title(title)
+    db = SQLite3::Database.new db_file
+    result = db.get_first_value('SELECT discourse_url from notes WHERE title = ?',
+                                [title])
+    db.close
+    result
+  end
+
   def self.create_note_sql
     <<-SQL
     INSERT INTO notes (title, discourse_url, discourse_post_id)

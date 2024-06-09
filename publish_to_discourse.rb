@@ -8,6 +8,7 @@ require_relative 'lib/api_error_parser'
 require_relative 'lib/cli_error_handler'
 require_relative 'lib/database'
 require_relative 'lib/utils'
+require_relative 'internal_link_handler'
 require_relative 'local_to_discourse_image_converter'
 
 class PublishToDiscourse
@@ -29,6 +30,8 @@ class PublishToDiscourse
     markdown, _front_matter = parse(content)
     image_converter = LocalToDiscourseImageConverter.new(markdown)
     markdown = image_converter.convert
+    link_handler = InternalLinkHandler.new(markdown)
+    markdown = link_handler.handle
     if post_id
       update_topic_from_note(markdown:,
                              post_id:)
@@ -47,9 +50,8 @@ class PublishToDiscourse
   end
 
   def create_topic_from_note(title:, markdown:)
-    external_id = "ob:#{title}"
     response = @client.post('posts', title:, raw: markdown, category: 8,
-                                     external_id:, skip_validations: true)
+                                     skip_validations: true)
     add_note_to_db(title, response)
   rescue DiscourseApi::UnauthenticatedError, DiscourseApi::Error => e
     error_message, error_type = ApiErrorParser.message_and_type(e)
