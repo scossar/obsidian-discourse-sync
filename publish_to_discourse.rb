@@ -35,7 +35,7 @@ class PublishToDiscourse
     link_handler = InternalLinkHandler.new(markdown)
     markdown = link_handler.handle
     if post_id
-      update_topic_from_note(markdown:, post_id:)
+      update_topic_from_note(title:, markdown:, post_id:)
     else
       create_topic(title:, markdown:, category: 8)
     end
@@ -48,40 +48,17 @@ class PublishToDiscourse
     [markdown, front_matter]
   end
 
-  def create_topic_from_note(title:, markdown:)
-    response = @client.post('posts', title:, raw: markdown, category: 8, skip_validations: true)
-    add_note_to_db(title, response)
-  rescue DiscourseApi::UnauthenticatedError, DiscourseApi::Error => e
-    error_message, error_type = ApiErrorParser.message_and_type(e)
-    CliErrorHandler.handle_error(error_message, error_type)
-  end
-
   def create_topic(title:, markdown:, category:)
-    body = { title:, raw: markdown, category:, skip_validations: true }.to_json
-    response = @faraday_client.post('/posts.json', body)
-    case response.status
-    when 200, 201, 204
-      response_body = JSON.parse(response.body)
-      add_note_to_db(title, response_body)
-    else
-      CliErrorHandler.handle_error("Unable to create topic for #{title}", 'Unknown error')
-    end
-  rescue Faraday::Error, Faraday::ConnectionFailed, Faraday::TimeoutError, Faraday::SSLError => e
-    error_message, error_type = ApiErrorParser.message_and_type(e)
-    CliErrorHandler.handle_error(error_message, error_type)
+    puts "Creating full topic for '#{title}'"
+    response = DiscourseClient.create_topic(title:, markdown:, category:)
+    add_note_to_db(title, response)
+    sleep 1
   end
 
-  def update_topic_from_note(markdown:, post_id:)
-    response = @client.edit_post(post_id, markdown)
-    case response.status
-    when 200, 201, 204
-      response.body
-    else
-      raise "Failed to update post: #{response.body}"
-    end
-  rescue DiscourseApi::NotFoundError, DiscourseApi::Error => e
-    error_message, error_type = ApiErrorParser.message_and_type(e)
-    CliErrorHandler.handle_error(error_message, error_type)
+  def update_topic_from_note(title:, markdown:, post_id:)
+    puts "Updating post for '#{title}'"
+    DiscourseClient.update_post(markdown:, post_id:)
+    sleep 1
   end
 
   def add_note_to_db(title, response)

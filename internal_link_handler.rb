@@ -15,7 +15,7 @@ class InternalLinkHandler
     @markdown.gsub(@internal_link_regex) do |link_match|
       title = link_match.match(@internal_link_regex)[1]
       discourse_url = Database.get_discourse_url_from_title(title)
-      discourse_url ||= create_placeholder_topic(title:)
+      discourse_url ||= placeholder_topic(title:, category: 8)
       new_link = "[#{title}](#{discourse_url})"
       new_link
     rescue StandardError => e
@@ -25,19 +25,12 @@ class InternalLinkHandler
     end
   end
 
-  def create_placeholder_topic(title:)
-    raw = "This is a placeholder topic for #{title}"
-    puts "Creating placeholder topic for #{title}"
-    response = @client.post('posts', title:, raw:, category: 8, skip_validations: true)
+  def placeholder_topic(title:, category:)
+    markdown = "This is a placeholder topic for #{title}"
+    puts "Creating placeholder topic for '#{title}'"
+    response = DiscourseClient.create_topic(title:, markdown:, category:)
     add_note_to_db(title, response)
     sleep 1
-  rescue DiscourseApi::UnauthenticatedError, DiscourseApi::Error => e
-    error_message, error_type = ApiErrorParser.message_and_type(e)
-    CliErrorHandler.handle_error(error_message, error_type)
-  rescue StandardError => e
-    CliErrorHandler.handle_error(
-      "Unexpected error creating placeholder topic: #{e.message}", 'UnknownError'
-    )
   end
 
   def add_note_to_db(title, response)

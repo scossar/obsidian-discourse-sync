@@ -5,8 +5,8 @@ require 'faraday'
 require 'json'
 require 'yaml'
 
-require_relative 'lib/api_error_parser'
-require_relative 'lib/cli_error_handler'
+require_relative 'api_error_parser'
+require_relative 'cli_error_handler'
 
 Dotenv.load
 
@@ -32,6 +32,20 @@ module DiscourseClient
         JSON.parse(response.body)
       else
         CliErrorHandler.handle_error("Unable to create topic for #{title}", 'Unknown error')
+      end
+    rescue Faraday::Error, Faraday::ConnectionFailed, Faraday::TimeoutError, Faraday::SSLError => e
+      error_message, error_type = ApiErrorParser.message_and_type(e)
+      CliErrorHandler.handle_error(error_message, error_type)
+    end
+
+    def update_post(markdown:, post_id:)
+      body = { post: { raw: markdown } }.to_json
+      response = faraday_client.put("/posts/#{post_id}.json", body)
+      case response.status
+      when 200, 201, 204
+        JSON.parse(response.body)
+      else
+        CliErrorHandler.handle_error("Unable to create post for #{title}", 'Unknown error')
       end
     rescue Faraday::Error, Faraday::ConnectionFailed, Faraday::TimeoutError, Faraday::SSLError => e
       error_message, error_type = ApiErrorParser.message_and_type(e)
