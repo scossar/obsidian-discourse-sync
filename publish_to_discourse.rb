@@ -2,6 +2,7 @@
 
 require 'discourse_api'
 require 'front_matter_parser'
+require 'json'
 require 'yaml'
 
 require_relative 'lib/api_error_parser'
@@ -14,6 +15,7 @@ require_relative 'local_to_discourse_image_converter'
 class PublishToDiscourse
   def initialize
     @client = DiscourseClient.client
+    @faraday_client = DiscourseClient.faraday_client
     config = YAML.load_file('config.yml')
     @base_url = config['base_url']
   end
@@ -35,7 +37,7 @@ class PublishToDiscourse
     if post_id
       update_topic_from_note(markdown:, post_id:)
     else
-      create_topic_from_note(title:, markdown:)
+      create_topic(title:, markdown:, category: 8)
     end
   end
 
@@ -50,6 +52,21 @@ class PublishToDiscourse
     response = @client.post('posts', title:, raw: markdown, category: 8, skip_validations: true)
     add_note_to_db(title, response)
   rescue DiscourseApi::UnauthenticatedError, DiscourseApi::Error => e
+    error_message, error_type = ApiErrorParser.message_and_type(e)
+    CliErrorHandler.handle_error(error_message, error_type)
+  end
+
+  def create_topic(title:, markdown:, category:)
+    body = { title:, raw: markdown, category:, skip_validations: true }.to_json
+    response = @faraday_client.post('/posts.json', body)
+    case response.status
+    when 200, 201, 204
+      response_body = JSON.parse(response.body)
+      add_note_to_db(title, response_body)
+    else
+      CliErrorHandler.handle_error("Unable to create topic for #{title}", 'Unknown error')
+    end
+  rescue Faraday::Error, Faraday::ConnectionFailed, Faraday::TimeoutError, Faraday::SSLError => e
     error_message, error_type = ApiErrorParser.message_and_type(e)
     CliErrorHandler.handle_error(error_message, error_type)
   end

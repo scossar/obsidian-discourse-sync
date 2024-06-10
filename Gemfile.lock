@@ -37,6 +37,7 @@ PLATFORMS
 DEPENDENCIES
   discourse_api
   dotenv
+  faraday (~> 2.7, >= 2.7.11)
   front_matter_parser
   mime-types
   sqlite3 (~> 2.0, >= 2.0.2)
