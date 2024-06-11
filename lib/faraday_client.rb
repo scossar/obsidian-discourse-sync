@@ -34,7 +34,8 @@ class FaradayClient
   end
 
   def get(path, params = {})
-    request(:get, path, params)
+    response = request(:get, path, params)
+    response.body
   end
 
   def post(path, params = {})

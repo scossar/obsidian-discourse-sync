@@ -24,4 +24,8 @@ class DiscourseRequest
     params = { file:, synchronous: true, type: 'composer' }
     @faraday_client.post('/uploads.json', params)
   end
+
+  def site_info
+    @faraday_client.get('/site.json')
+  end
 end

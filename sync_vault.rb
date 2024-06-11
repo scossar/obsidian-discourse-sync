@@ -2,6 +2,7 @@
 
 require 'fileutils'
 require 'yaml'
+require_relative 'discourse_category_fetcher'
 require_relative 'publish_to_discourse'
 
 class SyncVault
@@ -9,6 +10,8 @@ class SyncVault
     config = YAML.load_file('config.yml')
     @publisher = PublishToDiscourse.new
     @vault_path = vault_path || config['vault_path']
+    @categories = DiscourseCategoryFetcher.instance.categories
+    puts "categories: #{@categories}"
   end
 
   def sync
@@ -17,7 +20,7 @@ class SyncVault
       puts "Directory: #{File.dirname(file_path)}"
       puts "Last Modified: #{File.mtime(file_path)}"
       puts '---------'
-      @publisher.publish file_path
+      # @publisher.publish file_path
       sleep 1
     end
   end
