@@ -6,13 +6,13 @@ require 'fileutils'
 require 'mime-types'
 require 'yaml'
 
-require_relative 'api_error_parser'
 require_relative 'cli_error_handler'
 
 Dotenv.load
 
 class FaradayClient
   DEFAULT_TIMEOUT = 30
+
   def initialize
     config = YAML.load_file('config.yml')
     @api_key = ENV.fetch('API_KEY')
@@ -85,44 +85,52 @@ class FaradayClient
     response = connection.send(method.to_sym, path, params)
     handle_error(response)
     response.env
-  rescue Faraday::ClientError, JSON::ParserError
-    raise ObsidianDiscourse::Error
-  rescue Faraday::ConnectionFailed
-    raise ObsidianDiscourse::Timeout
+  rescue Faraday::ConnectionFailed => e
+    rescue_error(e, 'connection_failed')
+  rescue Faraday::TimeoutError => e
+    rescue_error(e, 'timeout')
+  rescue Faraday::SSLError => e
+    rescue_error(e, 'ssl_error')
+  rescue Faraday::Error => e
+    rescue_error(e, 'unknown_error')
   end
 
   def handle_error(response)
     case response.status
     when 403
-      raise_unauthenticated_error(response)
+      raise_unauthenticated_error
     when 404, 410
-      raise_note_found_error(response)
+      raise_not_found_error
     when 422
-      raise_unprocessable_entity(response)
+      raise_unprocessable_entity
     when 429
-      raise_too_many_requests(reaponse)
+      raise_too_many_requests
     when 500...600
-      raise_server_error(response)
+      raise_server_error
     end
   end
 
-  def raise_unauthenticated_error(response)
-    raise ObsidianDiscourse::UnauthenticatedError.new(response.env[:body], response.env)
+  def rescue_error(error, error_type)
+    CliErrorHandler.handle_error(error.message, error_type)
   end
 
-  def raise_not_found_error(response)
-    raise ObsidianDiscourse::NotFoundError.new(response.env[:body], response.env)
+  def raise_unauthenticated_error
+    CliErrorHandler.handle_error('Unauthenticated access', 'invalid_access')
   end
 
-  def raise_unprocessable_entity(response)
-    raise ObsidianDiscourse::UnprocessableEntity.new(response.env[:body], response.env)
+  def raise_not_found_error
+    CliErrorHandler.handle_error('Resource not found', 'not_found')
   end
 
-  def raise_too_many_requests(response)
-    raise ObsidianDiscourse::TooManyRequests.new(response.env[:body], response.env)
+  def raise_unprocessable_entity
+    CliErrorHandler.handle_error('Unprocessable entity', 'unprocessable_entity')
   end
 
-  def raise_server_error(response)
-    raise ObsidianDiscourse::Error.new(response.env[:body], response.env)
+  def raise_too_many_requests
+    CliErrorHandler.handle_error('Too many requests', 'too_many_requests')
+  end
+
+  def raise_server_error
+    CliErrorHandler.handle_error('Server error', 'server_error')
   end
 end

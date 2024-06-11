@@ -2,6 +2,7 @@
 
 module CliErrorHandler
   def self.handle_error(message, error_type)
+    puts "Handling error. message: #{message}, type: #{error_type}"
     puts "Error: #{message}"
     case error_type
     when 'invalid_access'
