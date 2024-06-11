@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'lib/faraday_client'
+require_relative 'lib/discourse_request'
 
 class FileHandler
   def initialize(markdown)
@@ -41,7 +41,7 @@ class FileHandler
 
   def upload_image(image_path)
     puts "Uploading file '#{image_path}'"
-    client = FaradayClient.new
+    client = DiscourseRequest.new
     client.upload_file(image_path)
   end
 end

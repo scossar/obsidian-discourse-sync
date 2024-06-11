@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require_relative 'lib/faraday_client'
+require_relative 'lib/discourse_request'
 require_relative 'lib/cli_error_handler'
 require_relative 'lib/database'
 
 class LinkHandler
   def initialize(markdown)
     @markdown = markdown
-    @client = FaradayClient.new
+    @client = DiscourseRequest.new
     # @internal_link_regex = /\[\[(.*?)\]\]/
     # adjusted so that it can't inadvertently capture image tags
     @internal_link_regex = /(?<!!)\[\[(.*?)\]\]/

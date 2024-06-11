@@ -20,26 +20,6 @@ class FaradayClient
     @base_url = config['base_url']
   end
 
-  def create_topic(title:, markdown:, category:)
-    params = { title:, raw: markdown, category:, skip_validations: true }
-    post('/posts.json', params)
-  end
-
-  def update_post(markdown:, post_id:)
-    params = { post: { raw: markdown } }
-    put("/posts/#{post_id}.json", params)
-  end
-
-  def upload_file(file_path)
-    file_name = File.basename(file_path)
-    mime_type = MIME::Types.type_for(file_name).first.to_s
-    file = Faraday::UploadIO.new(file_path, mime_type)
-    params = { file:, synchronous: true, type: 'composer' }
-    post('/uploads.json', params)
-  end
-
-  private
-
   def connection_options
     @connection_options ||= {
       url: @base_url,
@@ -66,6 +46,8 @@ class FaradayClient
     response = request(:put, path, params)
     response.body
   end
+
+  private
 
   def connection
     @connection ||=

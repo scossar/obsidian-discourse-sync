@@ -9,14 +9,14 @@ require 'yaml'
 require_relative 'lib/api_error_parser'
 require_relative 'lib/cli_error_handler'
 require_relative 'lib/database'
+require_relative 'lib/discourse_request'
 require_relative 'lib/utils'
 require_relative 'link_handler'
 require_relative 'file_handler'
-require_relative 'lib/faraday_client'
 
 class PublishToDiscourse
   def initialize
-    @client = FaradayClient.new
+    @client = DiscourseRequest.new
     config = YAML.load_file('config.yml')
     @base_url = config['base_url']
   end
