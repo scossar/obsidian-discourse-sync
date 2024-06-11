@@ -22,7 +22,7 @@ class LocalToDiscourseImageConverter
       image_name = tag_match.match(@image_tag_regex)[1]
       image_path = "#{@vault_path}#{image_name}"
       begin
-        response = upload_image_to_discourse(image_path)
+        response = upload_image(image_path)
         if response['errors']
           puts "Failed to upload image: #{response['errors']}"
           tag_match
@@ -41,6 +41,11 @@ class LocalToDiscourseImageConverter
   end
 
   private
+
+  def upload_image(image_path)
+    puts "image_path: #{image_path}"
+    DiscourseClient.upload_file(image_path)
+  end
 
   def upload_image_to_discourse(image_path)
     file_name = File.basename(image_path)

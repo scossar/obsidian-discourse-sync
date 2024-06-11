@@ -2,7 +2,9 @@
 
 require 'dotenv'
 require 'faraday'
+require 'fileutils'
 require 'json'
+require 'mime-types'
 require 'yaml'
 
 require_relative 'api_error_parser'
@@ -46,6 +48,26 @@ module DiscourseClient
         JSON.parse(response.body)
       else
         CliErrorHandler.handle_error("Unable to create post for #{title}", 'Unknown error')
+      end
+    rescue Faraday::Error, Faraday::ConnectionFailed, Faraday::TimeoutError, Faraday::SSLError => e
+      error_message, error_type = ApiErrorParser.message_and_type(e)
+      CliErrorHandler.handle_error(error_message, error_type)
+    end
+
+    def upload_file(file_path)
+      file_name = File.basename(file_path)
+      mime_type = MIME::Types.type_for(file_name).first.to_s
+      puts "mime_type: #{mime_type}"
+      file = Faraday::UploadIO.new(file_path, mime_type)
+      body = { file:, synchronous: true, type: 'composer' }.to_h
+      response = faraday_client.post('/uploads.json', body:)
+      puts "file upload response: #{response}"
+      puts "response status: #{response.status}"
+      case response.status
+      when 200, 201, 204
+        JSON.parse(response.body)
+      else
+        CliErrorHandler.handle_error("Unable to upload file #{file_name}", 'Unknown error')
       end
     rescue Faraday::Error, Faraday::ConnectionFailed, Faraday::TimeoutError, Faraday::SSLError => e
       error_message, error_type = ApiErrorParser.message_and_type(e)

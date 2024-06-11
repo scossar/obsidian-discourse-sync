@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'discourse_api'
+require 'fileutils'
 require 'front_matter_parser'
 require 'json'
 require 'yaml'
