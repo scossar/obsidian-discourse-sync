@@ -1,11 +1,8 @@
 # frozen_string_literal: true
 
-require 'discourse_api'
-require 'mime-types'
+require_relative 'lib/faraday_client'
 
-require_relative 'lib/discourse_client'
-
-class LocalToDiscourseImageConverter
+class FileHandler
   def initialize(markdown)
     @markdown = markdown
     @image_tag_regex = /!\[\[(.*?)\]\]/
@@ -43,15 +40,8 @@ class LocalToDiscourseImageConverter
   private
 
   def upload_image(image_path)
-    puts "image_path: #{image_path}"
-    DiscourseClient.upload_file(image_path)
-  end
-
-  def upload_image_to_discourse(image_path)
-    file_name = File.basename(image_path)
-    mime_type = MIME::Types.type_for(file_name).first.to_s
-    file = Faraday::UploadIO.new(image_path, mime_type)
-    DiscourseClient.client.upload_file(file:, synchronous: true,
-                                       type: 'composer')
+    puts "Uploading file '#{image_path}'"
+    client = FaradayClient.new
+    client.upload_file(image_path)
   end
 end

@@ -4,11 +4,13 @@ require_relative 'lib/discourse_client'
 require_relative 'lib/cli_error_handler'
 require_relative 'lib/database'
 
-class InternalLinkHandler
+class LinkHandler
   def initialize(markdown)
     @markdown = markdown
-    @client = DiscourseClient.client
-    @internal_link_regex = /\[\[(.*?)\]\]/
+    @client = FaradayClient.new
+    # @internal_link_regex = /\[\[(.*?)\]\]/
+    # adjusted so that it can't inadvertently capture image tags
+    @internal_link_regex = /(?<!!)\[\[(.*?)\]\]/
   end
 
   def handle
@@ -28,7 +30,7 @@ class InternalLinkHandler
   def placeholder_topic(title:, category:)
     markdown = "This is a placeholder topic for #{title}"
     puts "Creating placeholder topic for '#{title}'"
-    response = DiscourseClient.create_topic(title:, markdown:, category:)
+    response = @client.create_topic(title:, markdown:, category:)
     add_note_to_db(title, response)
     sleep 1
   end

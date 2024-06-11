@@ -14,11 +14,31 @@ Dotenv.load
 class FaradayClient
   DEFAULT_TIMEOUT = 30
   def initialize
-    config = YAML.load('config.yml')
+    config = YAML.load_file('config.yml')
     @api_key = ENV.fetch('API_KEY')
     @api_username = config['api_username']
     @base_url = config['base_url']
   end
+
+  def create_topic(title:, markdown:, category:)
+    params = { title:, raw: markdown, category:, skip_validations: true }
+    post('/posts.json', params)
+  end
+
+  def update_post(markdown:, post_id:)
+    params = { post: { raw: markdown } }
+    put("/posts/#{post_id}.json", params)
+  end
+
+  def upload_file(file_path)
+    file_name = File.basename(file_path)
+    mime_type = MIME::Types.type_for(file_name).first.to_s
+    file = Faraday::UploadIO.new(file_path, mime_type)
+    params = { file:, synchronous: true, type: 'composer' }
+    post('/uploads.json', params)
+  end
+
+  private
 
   def connection_options
     @connection_options ||= {
@@ -38,20 +58,14 @@ class FaradayClient
   end
 
   def post(path, params = {})
-    request(:post, path, params)
+    response = request(:post, path, params)
+    response.body
   end
 
   def put(path, params = {})
-    request(:put, path, params)
+    response = request(:put, path, params)
+    response.body
   end
-
-  def create_topic(title:, markdown:, category:)
-    params = { title:, raw: markdown, category:, skip_validations: true }
-    response = post('/posts.json', params)
-    put "response: #{response}"
-  end
-
-  private
 
   def connection
     @connection ||=
@@ -72,9 +86,9 @@ class FaradayClient
     handle_error(response)
     response.env
   rescue Faraday::ClientError, JSON::ParserError
-    raise DiscourseApi::Error
+    raise ObsidianDiscourse::Error
   rescue Faraday::ConnectionFailed
-    raise DiscourseApi::Timeout
+    raise ObsidianDiscourse::Timeout
   end
 
   def handle_error(response)

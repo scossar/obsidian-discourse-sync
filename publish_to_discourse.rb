@@ -10,13 +10,13 @@ require_relative 'lib/api_error_parser'
 require_relative 'lib/cli_error_handler'
 require_relative 'lib/database'
 require_relative 'lib/utils'
-require_relative 'internal_link_handler'
-require_relative 'local_to_discourse_image_converter'
+require_relative 'link_handler'
+require_relative 'file_handler'
+require_relative 'lib/faraday_client'
 
 class PublishToDiscourse
   def initialize
-    @client = DiscourseClient.client
-    @faraday_client = DiscourseClient.faraday_client
+    @client = FaradayClient.new
     config = YAML.load_file('config.yml')
     @base_url = config['base_url']
   end
@@ -31,9 +31,9 @@ class PublishToDiscourse
     content = File.read(file_path)
     post_id = Database.get_discourse_post_id(title)
     markdown, _front_matter = parse(content)
-    image_converter = LocalToDiscourseImageConverter.new(markdown)
-    markdown = image_converter.convert
-    link_handler = InternalLinkHandler.new(markdown)
+    file_handler = FileHandler.new(markdown)
+    markdown = file_handler.convert
+    link_handler = LinkHandler.new(markdown)
     markdown = link_handler.handle
     if post_id
       update_topic_from_note(title:, markdown:, post_id:)
@@ -51,18 +51,19 @@ class PublishToDiscourse
 
   def create_topic(title:, markdown:, category:)
     puts "Creating full topic for '#{title}'"
-    response = DiscourseClient.create_topic(title:, markdown:, category:)
+    response = @client.create_topic(title:, markdown:, category:)
     add_note_to_db(title, response)
     sleep 1
   end
 
   def update_topic_from_note(title:, markdown:, post_id:)
-    puts "Updating post for '#{title}'"
-    DiscourseClient.update_post(markdown:, post_id:)
+    puts "Updating post for '#{title}', post_id: #{post_id}"
+    @client.update_post(markdown:, post_id:)
     sleep 1
   end
 
   def add_note_to_db(title, response)
+    puts "Creating database entry for '#{title}'"
     discourse_post_id = response['id']
     topic_id = response['topic_id']
     topic_slug = response['topic_slug']

@@ -2,7 +2,6 @@
 
 source 'https://rubygems.org'
 
-gem 'discourse_api'
 gem 'dotenv'
 gem 'faraday', '~> 2.7', '>= 2.7.11'
 gem 'front_matter_parser'
