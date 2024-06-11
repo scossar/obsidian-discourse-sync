@@ -6,7 +6,6 @@ require 'front_matter_parser'
 require 'json'
 require 'yaml'
 
-require_relative 'lib/api_error_parser'
 require_relative 'lib/cli_error_handler'
 require_relative 'lib/database'
 require_relative 'lib/discourse_request'
