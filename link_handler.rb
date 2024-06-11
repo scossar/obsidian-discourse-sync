@@ -31,8 +31,9 @@ class LinkHandler
     markdown = "This is a placeholder topic for #{title}"
     puts "Creating placeholder topic for '#{title}'"
     response = @client.create_topic(title:, markdown:, category:)
-    add_note_to_db(title, response)
+    discourse_url = add_note_to_db(title, response)
     sleep 1
+    discourse_url
   end
 
   def add_note_to_db(title, response)
