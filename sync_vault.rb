@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'fileutils'
+require 'highline'
 require 'yaml'
 require_relative 'discourse_category_fetcher'
 require_relative 'publish_to_discourse'
@@ -10,8 +11,12 @@ class SyncVault
     config = YAML.load_file('config.yml')
     @publisher = PublishToDiscourse.new
     @vault_path = vault_path || config['vault_path']
-    @categories = DiscourseCategoryFetcher.instance.categories
+    @fetcher = DiscourseCategoryFetcher.instance
+    @categories = @fetcher.categories
+    @category_names = @fetcher.category_names
+    puts "categories: #{@category_names}"
     @directory_category_map = {}
+    @cli = HighLine.new
   end
 
   def sync
@@ -44,13 +49,9 @@ class SyncVault
   def select_category_for_directory(directory)
     unless @directory_category_map[directory]
       puts "Select a Discourse category for the directory: #{directory}"
-      @categories.each_key do |key|
-        puts @categories[key][:name]
-        choice = key
-        @directory_category_map[directory] = choice
-      end
+      choice = @cli.choose(@choices)
+      @directory_category_map[directory] = choice
     end
-    @directory_category_map[directory]
   end
 
   def sync_files_in_directory(directory, _category)

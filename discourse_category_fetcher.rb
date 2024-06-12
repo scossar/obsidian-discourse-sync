@@ -12,6 +12,17 @@ class DiscourseCategoryFetcher
     @categories = fetch_categories
   end
 
+  def category_names
+    @categories.values.map { |category| category[:name] }
+  end
+
+  def category_id_by_name(name)
+    @categories.each do |id, category|
+      return id if category[:name] == name
+    end
+    nil # Return nil if no category with the given name is found
+  end
+
   private
 
   def fetch_categories
